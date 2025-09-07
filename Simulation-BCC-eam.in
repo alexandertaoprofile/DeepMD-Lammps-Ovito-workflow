@@ -1,0 +1,30 @@
+# Define initial system and units
+units metal
+atom_style atomic
+boundary p p p  # Periodic boundaries in all directions
+
+# Initialize the structure and lattice
+lattice bcc 3.168  # Define BCC lattice with a lattice constant of 3.168 Å
+region box block 0 5 0 5 0 5  # Define the simulation box
+create_box 1 box  # Create the simulation box for 1 atom type
+create_atoms 1 box  # Create atoms in the entire box
+
+# Set the potential for atomic interactions using EAM potential
+pair_style eam/alloy  # Embedded Atom Method for alloy systems
+pair_coeff * * ~/Potentials/W_zhou.eam.alloy W  # Define potential file for W (tungsten)
+
+# Compute the potential energy per atom
+compute 1 all pe/atom
+
+# Thermodynamic output settings
+thermo 100  # Output thermodynamic properties every 100 steps
+thermo_style custom step temp pe etotal dt time  # Custom thermo output format
+dump 1 all custom 100 W.xyz id type x y z  # Dump atom positions and IDs every 100 steps
+
+# Set initial velocities and simulation parameters
+velocity all create 300 666 mom yes rot yes dist gaussian  # Initialize atom velocities at 300K
+fix 1 all nvt temp 300 300 0.05  # NVT ensemble with temperature controlled at 300K
+timestep 0.001  # Set timestep for simulation
+
+# Run the simulation for 10,000 steps
+run 10000
