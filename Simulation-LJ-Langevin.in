@@ -1,0 +1,42 @@
+# System definition
+units           lj                # Use Lennard-Jones units
+dimension       3                 # 3D simulation
+atom_style      atomic            # Atomic model for particles
+boundary        p p p             # Periodic boundaries in all directions
+
+# Initial structure and atom creation
+region simulation_box block -20 20 -20 20 -20 20   # Define the simulation box
+create_box 2 simulation_box                        # Create box for 2 atom types
+mass 1 1.0                                        # Set mass of atom type 1
+mass 2 1.0                                        # Set mass of atom type 2
+create_atoms 1 random 1000 12323 simulation_box   # Create 1000 atoms of type 1
+create_atoms 2 random 100 325234 simulation_box   # Create 100 atoms of type 2
+
+write_data init.data                             # Save initial data
+
+# Interatomic potential definition (Lennard-Jones potential)
+pair_style lj/cut 2.5                           # Lennard-Jones potential with cutoff of 2.5
+pair_coeff 1 1 1.0 1.0                          # Coefficients for atom type 1
+pair_coeff 2 2 0.5 3.0                          # Coefficients for atom type 2
+pair_coeff 1 2 0.2 2.0                          # Coefficients for interaction between atom type 1 and 2
+
+# Thermodynamic output settings
+thermo 10                                       # Output thermodynamic data every 10 steps
+thermo_style custom step temp pe ke press etotal # Display step, temperature, potential energy, kinetic energy, pressure, and total energy
+
+# Trajectory output
+dump trace all custom 1 md.lammpstrj            # Output atom positions every step (for visualization)
+
+# Minimization step for system relaxation
+minimize 1.0e-4 1.0e-6 1000 10000              # Energy minimization to remove bad overlaps
+
+write_data minimized.data                       # Save minimized configuration
+
+# Simulation settings
+fix nve all nve                                 # Apply NVE ensemble (constant number of particles, volume, and energy)
+fix lgvsimulation all langevin 1.0 1.0 0.1 1234567  # Apply Langevin thermostat (T = 1.0, damping = 0.1)
+timestep 0.005                                  # Set timestep to 0.005
+
+run 10000                                       # Run the simulation for 10000 steps
+
+write_data final.data                           # Save final configuration after simulation
