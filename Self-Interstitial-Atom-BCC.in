@@ -1,0 +1,51 @@
+# Initial system setup
+units           metal                        # Use metal units (appropriate for metallic systems)
+atom_style      atomic                       # Atomic style for atomic interactions
+boundary        p p p                         # Periodic boundary conditions in all directions
+neighbor        0.3 bin                      # Set neighbor list binning with a cutoff of 0.3
+
+# Define initial structure
+lattice bcc 3.168                            # Set lattice to BCC with a lattice constant of 3.168
+region box block 0 10 0 10 0 10              # Define a simulation box with dimensions 10x10x10
+create_box 1 box                             # Create a simulation box with 1 atom type
+create_atoms 1 box                           # Create atoms of type 1 in the box (BCC structure)
+
+# Define potential (EAM Alloy potential for W)
+pair_style eam/alloy                         # Define the potential style as eam/alloy
+pair_coeff * * ~/Potentials/W_zhou.eam.alloy W  # Set potential coefficients for W
+
+# Define thermodynamic output
+thermo 10                                    # Output thermodynamic information every 10 steps
+dump 1 all custom 1 SIA.xyz id type x y z     # Output atomic positions to 'SIA.xyz' file every step
+
+# Energy minimization for initial energy (perfect lattice)
+minimize 1.0e-12 1.0e-12 10000 10000        # Perform energy minimization
+
+# Record initial energy & lattice parameter
+variable E0 equal etotal                    # Store the total energy in E0
+variable E_initial equal ${E0}               # Store initial energy for further calculation
+variable N equal count(all)                 # Get the total number of atoms
+variable N0 equal ${N}                      # Store initial atom count
+
+# Delete atoms to create vacancy
+region 2 sphere 5.0 5.0 5.0 0.1 side in      # Define a spherical region at the center for vacancy
+delete_atoms region 2                        # Delete atoms in the defined region (vacancy creation)
+
+# Add interstitial atoms to create defects
+create_atoms 1 single 5.25 5.25 5.25        # Add the first interstitial atom
+create_atoms 1 single 5.75 5.75 5.75        # Add the second interstitial atom
+
+# Energy minimization for defect system (with interstitial atoms)
+minimize 1.0e-12 1.0e-12 1000 1000         # Perform energy minimization again for the defect system
+
+# Record defect energy
+variable E_defect equal etotal              # Store the total energy with defects
+
+# Calculate vacancy formation energy
+variable Nfrac equal (${N0}+1)/${N0}        # Calculate atom fraction for defected system
+variable Nreal equal ${Nfrac}*${E_initial}  # Calculate the reference energy with defect fraction
+variable E_v equal ${E_defect}-${Nreal}     # Calculate vacancy formation energy (defect energy - reference energy)
+
+# Output the calculated vacancy formation energy
+print 'All done!'                            # Notify that the calculations are complete
+print "SIA formation energy: ${E_v} eV"      # Output the calculated SIA formation energy in eV
