@@ -1,30 +1,45 @@
-# Define initial system and units
-units metal
-atom_style atomic
-boundary p p p  # Periodic boundaries in all directions
+# Define loop variables
+variable i loop 5                      # Loop over 5 iterations
+variable seed index 500 600 800 1000 1200  # Define a set of seeds for random velocity generation
 
-# Initialize the structure and lattice
-lattice bcc 3.168  # Define BCC lattice with a lattice constant of 3.168 Å
-region box block 0 5 0 5 0 5  # Define the simulation box
-create_box 1 box  # Create the simulation box for 1 atom type
-create_atoms 1 box  # Create atoms in the entire box
+# Initial system setup
+units        metal                       # Use metal units for the simulation
+atom_style   atomic                      # Atomic atom style (no bonds)
+boundary     p p p                        # Periodic boundaries in all directions
 
-# Set the potential for atomic interactions using EAM potential
-pair_style eam/alloy  # Embedded Atom Method for alloy systems
-pair_coeff * * ~/Potentials/W_zhou.eam.alloy W  # Define potential file for W (tungsten)
+# Initial structure setup
+lattice bcc 3.168                        # Define a body-centered cubic (BCC) lattice with a lattice constant of 3.168
+region box block 0 5 0 5 0 5            # Define a cubic simulation box from (0, 0, 0) to (5, 5, 5)
+create_box 1 box                         # Create a box for a single atom type
+create_atoms 1 box                       # Create atoms of type 1 within the box
 
-# Compute the potential energy per atom
-compute 1 all pe/atom
+# Define the interatomic potential (EAM potential for W)
+pair_style eam/alloy                    # EAM potential for alloy systems
+pair_coeff * * ~/Potentials/W_zhou.eam.alloy W  # Define the potential for the W atom type
 
-# Thermodynamic output settings
-thermo 100  # Output thermodynamic properties every 100 steps
-thermo_style custom step temp pe etotal dt time  # Custom thermo output format
-dump 1 all custom 100 W.xyz id type x y z  # Dump atom positions and IDs every 100 steps
+# Set the atomic potential and compute per-atom potential energy
+compute 1 all pe/atom                    # Compute the potential energy per atom
 
-# Set initial velocities and simulation parameters
-velocity all create 300 666 mom yes rot yes dist gaussian  # Initialize atom velocities at 300K
-fix 1 all nvt temp 300 300 0.05  # NVT ensemble with temperature controlled at 300K
-timestep 0.001  # Set timestep for simulation
+# Thermodynamic output setup
+thermo 10                                # Output thermodynamic data every 10 steps
+thermo_style custom step temp pe etotal dt time  # Display step, temperature, potential energy, total energy, timestep, and runtime
+dump 1 all custom 100 W.${i}.xyz id type x y z c_1  # Output atomic positions and potential energy to file, with looped filenames (W.1.xyz, W.2.xyz, ...)
 
-# Run the simulation for 10,000 steps
-run 10000
+# Set velocity distribution for initial conditions
+velocity all create 300 ${seed} mom yes rot yes dist gaussian  # Create a velocity distribution at 300K with randomized seed and momentum conservation
+
+# Simulation settings
+fix 1 all nvt temp 300 300 0.05         # Apply NVT ensemble (constant number of particles, volume, and temperature)
+timestep 0.001                           # Set the timestep to 0.001 for the simulation
+run 10000                                # Run the simulation for 10,000 steps
+
+# Clear previous simulation data and prepare for next iteration
+clear                                    # Clear previous setup and results to prepare for the next iteration
+
+# Continue to next iteration
+next i                                   # Move to the next loop index (i)
+next seed                                # Move to the next seed value from the defined list
+jump in.relax                            # Jump to the next part of the script (if defined)
+
+# End the simulation loop
+quit
