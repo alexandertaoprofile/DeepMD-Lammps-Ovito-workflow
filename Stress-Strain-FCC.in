@@ -1,0 +1,32 @@
+# Initial system setup
+units           metal                     # Set units to metal (appropriate for metallic systems)
+atom_style      atomic                    # Use atomic style for simple atomic interactions
+boundary        p p p                      # Periodic boundary conditions in all directions
+
+# Define initial structure
+lattice fcc 3.52                          # Create an FCC lattice with a lattice constant of 3.52
+region box block 0 10 0 10 0 10           # Define a cubic simulation box of size 10x10x10
+create_box 1 box                          # Create the simulation box with a single atom type
+create_atoms 1 box                        # Create atoms of type 1 in the box (FCC structure)
+
+# Define potential using MEAM (Modified Embedded Atom Method)
+pair_style meam                             # Define MEAM potential
+pair_coeff * * ~/Potentials/library.meam Ni CoNiCrFeMn.meam Ni  # Define potential coefficients for Ni
+
+# Thermodynamic output settings
+thermo 1000                                  # Output thermodynamic data every 1000 steps
+thermo_style custom step lx ly lz press pxx pyy pzz pe temp   # Display simulation step, box dimensions, pressure tensor, potential energy, and temperature
+dump 1 all custom 500 Ni.xyz id type x y z  # Output atomic positions to file 'Ni.xyz' every 500 steps
+
+# Relaxation under NPT ensemble (constant temperature, pressure, and volume)
+velocity all create 300 12345 dist gaussian  # Initialize velocities at 300K with Gaussian distribution and random seed
+fix 1 all npt temp 300 300 1 iso 0 0 1 drag 1  # Apply NPT ensemble with temperature of 300K and isotropic pressure control
+timestep 0.001                              # Set the timestep to 0.001
+run 20000                                   # Run the simulation for 20,000 steps to achieve relaxation
+
+# Stress-strain calculation under NPT ensemble
+unfix 1                                    # Unfix the previous NPT ensemble
+fix 1 all npt temp 300 300 1 y 0 0 1 z 0 0 1 drag 1   # Apply NPT ensemble with temperature of 300K and pressure control on Y and Z axes
+fix 2 all deform 1 x erate 0.01 units box   # Apply deformation along the X-axis with strain rate of 0.01 units/step
+run 20000                                   # Run the simulation for 20,000 steps to calculate stress-strain
+
