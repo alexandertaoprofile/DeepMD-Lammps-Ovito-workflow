@@ -1,0 +1,82 @@
+# 设置模拟环境，使用二维模型
+dimension 2
+boundary p s p
+atom_style atomic
+
+# 邻居设置与延迟调整
+neighbor 0.3 bin
+neigh_modify delay 5
+
+# 定义晶格与区域
+lattice hex 0.9
+region box block 0 50 0 22 -0.25 0.25
+create_box 4 box
+
+# 定义原子质量
+mass 1 1.0
+mass 2 1.0
+mass 3 1.0
+mass 4 1.0
+
+# 划分特定区域
+region lo-fixed block INF INF INF 1.1 INF INF
+region lo-slab block INF INF INF 7 INF INF
+region above-lo block INF INF INF 7 INF INF side out
+region hi-fixed block INF INF 20.9 INF INF INF
+region hi-slab block INF INF 15 INF INF INF
+region below-hi block INF INF 15 INF INF INF side out
+
+# 定义两个半球区域
+region lo-asperity sphere 32 7 0 8
+region hi-asperity sphere 18 15 0 8
+region lo-half-sphere intersect 2 lo-asperity above-lo
+region hi-half-sphere intersect 2 hi-asperity below-hi
+
+# 对特定区域填充原子
+create_atoms 1 region lo-slab
+create_atoms 1 region hi-slab
+create_atoms 2 region lo-half-sphere
+create_atoms 3 region hi-half-sphere
+
+# 定义原子分组
+group lo region lo-slab
+group lo type 2
+group hi region hi-slab
+group hi type 3
+group lo-fixed region lo-fixed
+group hi-fixed region hi-fixed
+group boundary union lo-fixed hi-fixed
+group mobile subtract all boundary
+
+# 设置原子类型
+set group lo-fixed type 4
+set group hi-fixed type 4
+
+# 定义相互作用势
+pair_style lj/cut 2.5
+pair_coeff * * 1.0 1.0 2.5
+
+# 计算所需的物理量
+compute new mobile temp/partial 0 1 0
+
+# 输出设置（减少输出频率，优化性能）
+thermo 1000
+thermo_modify temp new
+dump 1 all custom 500 movie.xyz id type x y z
+
+# 初始速度设置
+velocity mobile create 0.1 482748 temp new
+velocity hi set 1.0 0.0 0.0 sum yes
+
+# 动力学设置
+fix 1 all nve                        # 使用NVE积分
+fix 2 boundary setforce 0.0 0.0 0.0  # 固定边界条件，设置边界的力为0
+fix 3 mobile temp/rescale 200 0.1 0.1 0.02 1.0  # 对运动原子进行温度重标定
+fix_modify 3 temp new                # 将计算的温度应用于fix 3
+fix 4 all enforce2d                  # 强制2D模拟，避免Z方向运动
+
+# 设置时间步长
+timestep 0.0025
+
+# 执行模拟
+run 20000
