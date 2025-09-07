@@ -1,0 +1,37 @@
+# Initial system setup
+units           metal                        # Use metal units for the simulation
+atom_style      atomic                       # Atomic atom style (no bonds)
+boundary        p p p                         # Periodic boundaries in all directions
+neighbor        0.3 bin                      # Define binning for neighbor list
+
+# Define initial structure
+lattice bcc 3.168                           # Define a body-centered cubic (BCC) lattice with a lattice constant of 3.168
+region box block 0 10 0 10 0 10             # Create a cubic simulation box of size 10x10x10
+create_box 1 box                            # Create a box for one atom type
+create_atoms 1 box                          # Create atoms of type 1 in the box
+
+# Define potential for interatomic interactions (W potential)
+pair_style eam/alloy                       # Use EAM potential for alloy systems
+pair_coeff * * ~/Potentials/W_zhou.eam.alloy W  # Define the potential for the W atom type
+
+# Define thermodynamic output
+thermo 10                                   # Output thermodynamic data every 10 steps
+thermo_style custom step temp pe etotal dt time  # Display step, temperature, potential energy, total energy, timestep, and runtime
+dump 1 all custom 1 vacancy.xyz id type x y z  # Output atomic positions to file 'vacancy.xyz'
+
+# Energy minimization to achieve a perfect crystal structure
+minimize 1.0e-12 1.0e-12 10000 10000       # Perform energy minimization for the perfect structure
+
+# Create vacancy by deleting atoms in a specific region
+region 2 sphere 5.0 5.0 5.0 0.1 side in    # Define a spherical region at (5,5,5) with a radius of 0.1
+delete_atoms region 2                       # Delete atoms within the defined spherical region (creating a vacancy)
+
+# Energy minimization to relax the defect structure
+minimize 1.0e-12 1.0e-12 1000 1000        # Perform energy minimization for the defect structure
+
+# Setup for molecular dynamics simulation
+velocity all create 300 666 mom yes rot yes dist gaussian  # Initialize velocities at 300K with Gaussian distribution
+fix 1 all nvt temp 300 300 0.05            # Apply NVT ensemble (constant number of particles, volume, and temperature)
+timestep 0.001                             # Set the timestep to 0.001
+run 10000                                  # Run the simulation for 10,000 steps
+
