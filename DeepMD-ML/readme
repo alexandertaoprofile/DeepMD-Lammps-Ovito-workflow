@@ -1,1 +1,6 @@
-
+This is a completed DeepMD training file that contains:
+  1. original xyz file 
+  2. set.000 dir that contains npys for necessary properties
+  3. type map files 
+  4. input.json file
+  5. Output RMSE file and visualization
