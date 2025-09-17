@@ -1,6 +1,13 @@
-This is a completed DeepMD training file that contains:
-  1. original xyz file 
-  2. set.000 dir that contains npys for necessary properties
-  3. type map files 
-  4. input.json file
-  5. Output RMSE file and visualization
+This repository contains a complete DeepMD training setup based on glass datasets, including:
+
+Original XYZ structure files.
+
+set.000/ directory with .npy files for all necessary properties (energies, forces, etc.) for training.
+
+Type mapping files for atomic species.
+
+input.json configuration file for DeepMD training.
+
+Output files including RMSE metrics and visualization of training performance.
+
+LAMMPS dump files generated using the trained .pb DeepMD potential derived from the glass datasets.
